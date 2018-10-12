@@ -8,18 +8,19 @@ The usage of the checks depends on what kind of checks they are:
 * normal checks must be run on the monitoring server
 
 ## How to use check_openvpn
-The plugin is a normal check which must be run on the monitoring server. It queries the target OpenVPN server and outputs OK, etc.
+The plugin is a normal check which must be run on the monitoring server. It queries the target OpenVPN server and outputs
+OK, UNKNOWN and CRITICAL states.
 ```
 $ python check_openvpn --help
-usage: check_openvpn [-h] [-p PORT] [-t] host
+Usage: check_openvpn -H vpn.example.com
 
-positional arguments:
-  host                  the OpenVPN host name or ip
-
-optional arguments:
+Options:
   -h, --help            show this help message and exit
-  -p PORT, --port PORT  set port number
-  -t, --tcp             use tcp instead of udp
+  -p PORT, --port=PORT  Set port number (default is 1194)
+  -t TIMEOUT, --timeout=TIMEOUT
+                        Set timeout (default is 5)
+  --tcp                 Use TCP instead of UDP
+  -H HOST, --host=HOST  OpenVPN host name or IP
 ```
 
 ## How to use check_puppetagent

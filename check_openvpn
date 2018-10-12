@@ -1,10 +1,10 @@
-#! /usr/bin/python
+#!/usr/bin/python2
 
 # Check if an OpenVPN server runs on a given UDP port.
 #
 # Copyright 2013 Roland Wolters, credativ GmbH
 #
-# Version 20130904
+# Version 20150628
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -27,37 +27,41 @@
 
 import sys
 import socket
-import argparse
 import binascii
+from optparse import OptionParser
 
 def ok(msg):
     print "OK: %s" % msg
     sys.exit(0)
 
 def critical(msg):
-    print "CRIT: %s" % msg
+    print "CRITICAL: %s" % msg
     sys.exit(2)
 
-def checkserver(host,port,proto):
+def unknown(msg):
+    print "UNKNOWN: %s" % msg
+    sys.exit(3)
+
+def checkserver(host,port,tcp,timeout):
     byte_stream = "\x38\x01\x00\x00\x00\x00\x00\x00\x00"
 
-    if proto:
+    if tcp:
         ovpn_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     else:
         ovpn_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-    ovpn_sock.settimeout(5)
+    ovpn_sock.settimeout(timeout)
 
     try:
         ovpn_sock.sendto(byte_stream,(host,port))
         data, addr = ovpn_sock.recvfrom(1024) # buffer size is 1024 bytes
         reply = binascii.hexlify(data)
-        if proto:
+        if tcp:
             ok("OpenVPN tcp port reachable.")
         else:
             ok("OpenVPN server response (hex): %s" % reply)
     except socket.timeout:
-        critical("Request timed out")
+        unknown("Request timed out")
         ovpn_sock.close()
     except (socket.error, Exception):
         critical("OpenVPN server not responding")
@@ -66,20 +70,19 @@ def checkserver(host,port,proto):
     ovpn_sock.close()
     return data
 
-def optionsparser():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-p","--port", help="set port number",
-    type=int, dest="port", default="1194")
-    parser.add_argument("-t","--tcp", help="use tcp instead of udp",
-    action="store_true")
-    parser.add_argument("host", type=str, help="the OpenVPN host name or ip")
-    return parser.parse_args()
-
 def main():
-    arguments = optionsparser()
-
-    data = checkserver(arguments.host,arguments.port,arguments.tcp)
+  usage = 'usage: %prog -H vpn.example.com'
+  parser = OptionParser(usage=usage)
+  parser.add_option('-p', '--port', type='int', dest='port', default='1194', help='Set port number (default is %default)')
+  parser.add_option('-t', '--timeout', type='int', dest='timeout', default='5', help='Set timeout (default is %default)')
+  parser.add_option('--tcp', action='store_true', dest='tcp', help='Use TCP instead of UDP')
+  parser.add_option('-H', '--host', type='str', dest='host', help='OpenVPN host name or IP')
+  (options, args) = parser.parse_args()
+  if not options.host:
+    parser.print_help()
+    sys.exit(0)
+  data = checkserver(options.host,options.port,options.tcp,options.timeout)
 
 if __name__ == "__main__":
     main()
-
+    
